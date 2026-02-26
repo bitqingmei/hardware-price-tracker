@@ -1,0 +1,12 @@
+{
+  "name": "hardware-price-tracker",
+  "version": "1.0.0",
+  "description": "自动抓取 GPU 价格",
+  "main": "fetch-prices.js",
+  "scripts": {
+    "start": "node fetch-prices.js"
+  },
+  "dependencies": {
+    "puppeteer": "^22.0.0"
+  }
+}
