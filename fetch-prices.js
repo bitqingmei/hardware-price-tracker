@@ -78,12 +78,21 @@ async function fetchAmazonPrice(page, product) {
     console.log(`   URL: ${product.searchUrl}`);
     
     await page.goto(product.searchUrl, { 
-      waitUntil: 'networkidle2',
-      timeout: 30000
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
     });
     
+    // 等待页面加载
+    await new Promise(r => setTimeout(r, 3000));
+    
     // 等待搜索结果加载
-    await page.waitForSelector('[data-component-type="s-search-result"]', { timeout: 10000 });
+    try {
+      await page.waitForSelector('[data-component-type="s-search-result"]', { timeout: 15000 });
+    } catch (e) {
+      console.log('   ⚠️ 等待搜索结果超时，尝试截图...');
+      await page.screenshot({ path: `debug-${product.id}.png` });
+      return null;
+    }
     
     // 提取第一个真实产品的价格
     const result = await page.evaluate(() => {
@@ -179,12 +188,27 @@ async function main() {
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--window-size=1920,1080'
     ]
   });
   
   const page = await browser.newPage();
+  
+  // 更完整的反检测
   await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+  });
+  
+  // 模拟真实浏览器
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+    window.chrome = { runtime: {} };
+  });
   
   // 设置视口
   await page.setViewport({ width: 1920, height: 1080 });
